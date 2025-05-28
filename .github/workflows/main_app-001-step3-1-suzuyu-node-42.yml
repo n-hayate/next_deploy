@@ -1,6 +1,14 @@
 # Docs for the Azure Web Apps Deploy action: https://github.com/Azure/webapps-deploy
 # More GitHub Actions for Azure: https://github.com/Azure/actions
 
+- name: npm install and build Next.js application
+        env:
+          NEXT_PUBLIC_API_ENDPOINT: ${{ secrets.NEXT_PUBLIC_API_ENDPOINT }}
+        run: |
+          echo "DEBUG_API_ENDPOINT_DURING_BUILD: $NEXT_PUBLIC_API_ENDPOINT" # ★この行を一時的に追加
+          npm install
+          npm run build
+
 name: Build and deploy Node.js app to Azure Web App - app-001-step3-1-suzuyu-node-42
 
 on:

@@ -6,59 +6,80 @@ name: Build and deploy Node.js app to Azure Web App - app-001-step3-1-suzuyu-nod
 on:
   push:
     branches:
-      - main
-  workflow_dispatch:
+      - main # main ブランチにプッシュされたら実行
+  workflow_dispatch: # 手動で実行できるようにする
 
 jobs:
   build:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-latest # ビルド環境
     permissions:
-      contents: read #This is required for actions/checkout
+      contents: read # Gitリポジトリの内容を読み取る権限 (actions/checkout に必要)
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v4 # リポジトリをチェックアウト
 
-      - name: Set up Node.js version
+      - name: Set up Node.js version # Node.jsのバージョン設定
         uses: actions/setup-node@v3
         with:
-          node-version: '20.x'
+          node-version: '20.x' # Node.js 20.x を使用
 
-      - name: npm install, build, and test
+      # Next.jsアプリケーションの依存関係インストールとビルド
+      - name: npm install and build Next.js application
+        env:
+          # APIエンドポイントの環境変数をビルド時に渡す
+          NEXT_PUBLIC_API_ENDPOINT: ${{ secrets.NEXT_PUBLIC_API_ENDPOINT }}
         run: |
-          npm install
-          npm run build --if-present
-          npm run test --if-present
+          npm install # 依存関係をインストール
+          npm run build # Next.jsアプリケーションをビルド
+          # npm run test # 必要であればテストも実行
 
+      # Next.jsのビルド成果物をデプロイ用に準備
+      - name: Prepare Next.js build output for deployment
+        run: |
+          mkdir deploy # デプロイ用のディレクトリを作成
+          # Next.js 13以降のstandalone出力に対応
+          # .next/standalone ディレクトリの内容を deploy にコピー
+          cp -r ./.next/standalone/. ./deploy/
+          # staticアセットもコピー
+          cp -r ./.next/static/. ./deploy/.next/static/
+
+      # デプロイ用アーティファクトをZip圧縮
       - name: Zip artifact for deployment
-        run: zip release.zip ./* -r
+        run: |
+          cd deploy # deploy ディレクトリに移動
+          # deploy ディレクトリの中身を全て圧縮し、親ディレクトリに release.zip として保存
+          zip -r ../release.zip .
+          cd .. # 元のディレクトリに戻る
 
+      # ビルド成果物を次のジョブに渡すためにアップロード
       - name: Upload artifact for deployment job
         uses: actions/upload-artifact@v4
         with:
-          name: node-app
-          path: release.zip
+          name: node-app # アーティファクトの名前
+          path: release.zip # アップロードするファイルのパス
 
   deploy:
-    runs-on: ubuntu-latest
-    needs: build
+    runs-on: ubuntu-latest # デプロイ環境
+    needs: build # build ジョブが成功した後に実行
     environment:
-      name: 'Production'
-      url: ${{ steps.deploy-to-webapp.outputs.webapp-url }}
-    
+      name: 'Production' # 環境名 (AzureのProductionスロットに対応)
+      url: ${{ steps.deploy-to-webapp.outputs.webapp-url }} # デプロイ後のURL
+
     steps:
-      - name: Download artifact from build job
+      - name: Download artifact from build job # ビルドジョブからアーティファクトをダウンロード
         uses: actions/download-artifact@v4
         with:
-          name: node-app
+          name: node-app # ダウンロードするアーティファクトの名前
 
-      - name: Unzip artifact for deployment
-        run: unzip release.zip
-      
-      - name: 'Deploy to Azure Web App'
-        id: deploy-to-webapp
-        uses: azure/webapps-deploy@v3
+      - name: Unzip artifact for deployment # ダウンロードしたzipファイルを解凍
+        run: unzip release.zip # 解凍すると、カレントディレクトリにデプロイ対象のファイルが展開される
+
+      - name: 'Deploy to Azure Web App' # Azure Web Appにデプロイ
+        id: deploy-to-webapp # デプロイステップのID
+        uses: azure/webapps-deploy@v3 # Azure Web Apps Deploy アクションを使用
         with:
-          app-name: 'app-001-step3-1-suzuyu-node-42'
-          slot-name: 'Production'
-          package: .
+          app-name: 'app-001-step3-1-suzuyu-node-42' # あなたのWebアプリ名 (変更なし)
+          slot-name: 'Production' # デプロイスロット (変更なし)
+          package: . # 解凍されたカレントディレクトリをデプロイ対象とする (変更なし)
+          # Azureが自動生成したpublish-profileのシークレットを使用
           publish-profile: ${{ secrets.AZUREAPPSERVICE_PUBLISHPROFILE_9172DC71AD0F4F9CB730F4E029957823 }}

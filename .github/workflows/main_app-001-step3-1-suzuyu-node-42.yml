@@ -16,7 +16,7 @@ jobs:
       contents: read # Gitリポジトリの内容を読み取る権限 (actions/checkout に必要)
 
     steps:
-      - uses: actions/checkout@v4 # リポジトリをチェックアウト
+      - uses: actions/checkout@v4 # リポジリをチェックアウト
 
       - name: Set up Node.js version # Node.jsのバージョン設定
         uses: actions/setup-node@v3
@@ -37,11 +37,16 @@ jobs:
       - name: Prepare Next.js build output for deployment
         run: |
           mkdir deploy # デプロイ用のディレクトリを作成
-          # Next.js 13以降のstandalone出力に対応
-          # .next/standalone ディレクトリの内容を deploy にコピー
+          # .next/standalone ディレクトリの内容を deploy にコピー (サーバーサイドのコード)
           cp -r ./.next/standalone/. ./deploy/
-          # staticアセットもコピー
+
+          # --- ここが修正されました ---
+          # Next.jsの静的アセット (.next/static) を、
+          # デプロイ先のルートにある .next ディレクトリの下にコピーする
+          # Next.jsが期待するパス構造 (/_next/static/...) に合わせるため
+          mkdir -p ./deploy/.next # deploy/内に.nextディレクトリがなければ作成
           cp -r ./.next/static/. ./deploy/.next/static/
+          # --- 修正終わり ---
 
       # デプロイ用アーティファクトをZip圧縮
       - name: Zip artifact for deployment

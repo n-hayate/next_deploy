@@ -1,14 +1,6 @@
 # Docs for the Azure Web Apps Deploy action: https://github.com/Azure/webapps-deploy
 # More GitHub Actions for Azure: https://github.com/Azure/actions
 
-- name: npm install and build Next.js application
-        env:
-          NEXT_PUBLIC_API_ENDPOINT: ${{ secrets.NEXT_PUBLIC_API_ENDPOINT }}
-        run: |
-          echo "DEBUG_API_ENDPOINT_DURING_BUILD: $NEXT_PUBLIC_API_ENDPOINT" # ★この行を一時的に追加
-          npm install
-          npm run build
-
 name: Build and deploy Node.js app to Azure Web App - app-001-step3-1-suzuyu-node-42
 
 on:
@@ -24,7 +16,7 @@ jobs:
       contents: read # Gitリポジトリの内容を読み取る権限 (actions/checkout に必要)
 
     steps:
-      - uses: actions/checkout@v4 # リポジリをチェックアウト
+      - uses: actions/checkout@v4 # リポジトリをチェックアウト
 
       - name: Set up Node.js version # Node.jsのバージョン設定
         uses: actions/setup-node@v3
@@ -37,6 +29,10 @@ jobs:
           # APIエンドポイントの環境変数をビルド時に渡す
           NEXT_PUBLIC_API_ENDPOINT: ${{ secrets.NEXT_PUBLIC_API_ENDPOINT }}
         run: |
+          # ★★★ ここにDEBUG用のechoを追加しました ★★★
+          echo "DEBUG_API_ENDPOINT_DURING_BUILD: $NEXT_PUBLIC_API_ENDPOINT"
+          # ★★★ 上記のecho行はデバッグ後に削除してください ★★★
+
           npm install # 依存関係をインストール
           npm run build # Next.jsアプリケーションをビルド
           # npm run test # 必要であればテストも実行
@@ -48,13 +44,11 @@ jobs:
           # .next/standalone ディレクトリの内容を deploy にコピー (サーバーサイドのコード)
           cp -r ./.next/standalone/. ./deploy/
 
-          # --- ここが修正されました ---
           # Next.jsの静的アセット (.next/static) を、
           # デプロイ先のルートにある .next ディレクトリの下にコピーする
           # Next.jsが期待するパス構造 (/_next/static/...) に合わせるため
           mkdir -p ./deploy/.next # deploy/内に.nextディレクトリがなければ作成
           cp -r ./.next/static/. ./deploy/.next/static/
-          # --- 修正終わり ---
 
       # デプロイ用アーティファクトをZip圧縮
       - name: Zip artifact for deployment

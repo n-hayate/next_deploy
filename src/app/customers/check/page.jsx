@@ -65,4 +65,3 @@ export default async function ReadPage({ searchParams }) {
     </>
   );
 }
->>>>>>> b940a316ea793f3e8f5f9a3812ffb415fc2ee1d4
